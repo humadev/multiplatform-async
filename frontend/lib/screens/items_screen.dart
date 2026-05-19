@@ -16,6 +16,39 @@ class _ItemsScreenState extends State<ItemsScreen> {
   List<Item> _items = [];
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    getItems();
+  }
+
+  void getItems() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final response = await http.get(Uri.parse(apiUrl));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      final List<Item> items = data.map((datadariapi) => Item.fromJson(datadariapi)).toList();
+
+      setState(() {
+        _items = items;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void createItem(String name, String desc) async {
+    final response = await http.post(Uri.parse(apiUrl), body: jsonEncode({'name': name, 'desc': desc}));
+
+    if (response.statusCode == 201) {
+      final newItem = Item.fromJson(jsonDecode(response.body));
+      setState(() {
+        _items.add(newItem);
+      });
+    }
+  }
+
   void _showItemDialog([Item? item]) {
     final nameCtrl = TextEditingController(text: item?.name ?? '');
     final descCtrl = TextEditingController(text: item?.desc ?? '');
@@ -40,7 +73,13 @@ class _ItemsScreenState extends State<ItemsScreen> {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () {}, child: const Text('Save')),
+            ElevatedButton(
+              onPressed: () {
+                createItem(nameCtrl.text, descCtrl.text);
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
           ],
         );
       },
